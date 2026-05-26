@@ -53,7 +53,7 @@ vi.mock('@ananta/shared-ui', async () => {
 vi.mock('../api/client', () => ({
   api: {
     model: { get: vi.fn().mockResolvedValue({ model: 'test-model' }) },
-    repos: { list: vi.fn().mockResolvedValue([]), listUncategorized: vi.fn().mockResolvedValue([]), get: vi.fn(), analyze: vi.fn(), getAnalysis: vi.fn(), checkUpdates: vi.fn(), applyUpdates: vi.fn(), delete: vi.fn() },
+    repos: { list: vi.fn().mockResolvedValue([]), listUncategorized: vi.fn().mockResolvedValue([]), get: vi.fn(), add: vi.fn(), analyze: vi.fn(), getAnalysis: vi.fn(), checkUpdates: vi.fn(), applyUpdates: vi.fn(), delete: vi.fn() },
     topics: {
       list: vi.fn().mockResolvedValue([]),
       create: vi.fn(),
@@ -140,6 +140,29 @@ describe('App', () => {
     render(<App />)
     await flush()
     expect(screen.getByText('Code Explorer')).toBeInTheDocument()
+  })
+
+  describe('handleAddRepo', () => {
+    it('shows the server error detail in the toast when add fails', async () => {
+      const { api } = await import('../api/client')
+      const serverDetail =
+        "Failed to ingest repository 'https:<path>': 'utf-8' codec can't decode byte 0xdc in position 45: invalid continuation byte"
+      vi.mocked(api.repos.add).mockRejectedValue(new Error(serverDetail))
+
+      render(<App />)
+      await flush()
+
+      await userEvent.click(screen.getByTitle('Add repository'))
+      await userEvent.type(
+        screen.getByPlaceholderText('https://github.com/owner/repo'),
+        'https://github.com/mojolicious/mojo',
+      )
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+      await flush()
+
+      expect(screen.getByText(/invalid continuation byte/)).toBeInTheDocument()
+      expect(screen.queryByText('Failed to add repository')).not.toBeInTheDocument()
+    })
   })
 
   describe('handleCheckUpdates', () => {

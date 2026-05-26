@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Repository ingest no longer crashes with `UnicodeDecodeError` when a repo contains a non-UTF-8 file — the text and HTML parsers now detect encoding with chardet and fall back to UTF-8 replacement characters, matching the behavior of the code and fallback parsers. Previously a single bad byte in any `.md`/`.txt`/`.html`/`.json`/`.yaml`/`.csv` file would abort the entire ingest with a 422 response
+- Code Explorer "Add repository" failures now show the actual server error in the toast (e.g. clone timeout, parse error) instead of a generic "Failed to add repository" message — the detail was already reaching the frontend but was being discarded
 - Codebase analysis no longer crashes with `AttributeError` when the LLM returns a bare string in the `components` or `external_dependencies` arrays — strings are now promoted to `{"name": <string>}` to match the expected element shape
 - Code Explorer now shows an "Analysis in progress…" status on the repo detail page while an analysis is running — the action buttons are hidden so the in-progress state is unambiguous, and the state is preserved when the user navigates away and returns (previously the page reverted to "Generate Analysis", letting users start a duplicate run)
 - Code Explorer repo "analysis status" badge now refreshes from "not analyzed" to "current" as soon as analysis completes (previously the badge stayed stale until the page was reloaded)

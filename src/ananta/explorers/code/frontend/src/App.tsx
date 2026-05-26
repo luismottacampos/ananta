@@ -122,8 +122,9 @@ export default function App() {
       setShowAddRepo(false)
       setReposVersion(v => v + 1)
       showToast('Repository added', 'success')
-    } catch {
-      showToast('Failed to add repository', 'error')
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'Failed to add repository'
+      showToast(message, 'error')
     }
   }, [])
 
