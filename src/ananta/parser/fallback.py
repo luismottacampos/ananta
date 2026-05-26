@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-import chardet
-
 from ananta.models import ParsedDocument
+from ananta.parser._encoding import read_text_with_encoding_fallback
 
 
 class FallbackTextParser:
@@ -47,17 +46,7 @@ class FallbackTextParser:
             include_line_numbers: Whether to prefix lines with numbers.
             file_path: Display path for the file.
         """
-        # Detect encoding
-        with open(path, "rb") as f:
-            raw = f.read()
-
-        detected = chardet.detect(raw)
-        encoding = detected.get("encoding") or "utf-8"
-
-        try:
-            content = raw.decode(encoding)
-        except (UnicodeDecodeError, LookupError):
-            content = raw.decode("utf-8", errors="replace")
+        content = read_text_with_encoding_fallback(path)
 
         if include_line_numbers:
             display_path = file_path or path.name

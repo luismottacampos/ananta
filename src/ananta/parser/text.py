@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 
 from ananta.models import ParsedDocument
+from ananta.parser._encoding import read_text_with_encoding_fallback
 
 
 class TextParser:
@@ -30,7 +31,7 @@ class TextParser:
             include_line_numbers: Ignored for text files.
             file_path: Ignored for text files.
         """
-        content = path.read_text(encoding="utf-8")
+        content = read_text_with_encoding_fallback(path)
         format_type = path.suffix.lstrip(".").lower()
 
         # Pretty-print JSON for readability

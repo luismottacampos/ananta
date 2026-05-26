@@ -5,6 +5,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from ananta.models import ParsedDocument
+from ananta.parser._encoding import read_text_with_encoding_fallback
 
 
 class HtmlParser:
@@ -27,7 +28,7 @@ class HtmlParser:
             include_line_numbers: Ignored for HTML files.
             file_path: Ignored for HTML files.
         """
-        raw_html = path.read_text(encoding="utf-8")
+        raw_html = read_text_with_encoding_fallback(path)
         soup = BeautifulSoup(raw_html, "html.parser")
 
         # Remove script and style elements
