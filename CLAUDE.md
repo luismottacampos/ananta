@@ -47,6 +47,12 @@ make all                         # Format + lint + typecheck + test
 3. **REFACTOR:** Clean up if needed, keeping tests green.
 4. **COMMIT:** After each green state.
 
+### Refactor scope for bug fixes
+
+A bug-fix commit MAY include refactoring as part of the same red/green/refactor cycle, **as long as the refactor is the direct result of the changes made to fix the bug.** Example: if the fix introduces a second copy of an existing pattern, extracting the shared helper in the REFACTOR step is appropriate and encouraged — it eliminates duplication the fix itself created and prevents the same bug class from regressing in the future.
+
+This explicitly overrides the general "a bug fix doesn't need surrounding cleanup" guideline: cleanup that is the *consequence* of the fix is part of the fix. Unrelated cleanup (touching files the fix didn't change, fixing other bugs noticed in passing, stylistic rewrites) still belongs in its own commit.
+
 ### Violations
 
 - Implementation before tests

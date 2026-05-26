@@ -65,3 +65,19 @@ class TestTextParser:
         assert "name" in doc.content
         assert "Alice" in doc.content
         assert doc.format == "csv"
+
+    def test_parse_non_utf8_md_does_not_raise(self, parser: TextParser, tmp_path: Path):
+        """TextParser handles non-UTF-8 bytes in .md files without raising.
+
+        Regression: real-world repos (e.g. mojolicious/mojo) include CHANGELOG
+        and AUTHORS files with Latin-1 author names. A bare UTF-8 decode would
+        crash the entire repo ingest on a single bad byte.
+        """
+        path = tmp_path / "CHANGELOG.md"
+        path.write_bytes("Author: J\xdcrgen\n".encode("latin-1"))
+
+        doc = parser.parse(path)
+
+        assert doc.format == "md"
+        assert doc.char_count > 0
+        assert "Author" in doc.content
