@@ -85,7 +85,7 @@ from script_utils import (
 from ananta import Ananta
 from ananta.config import AnantaConfig
 from ananta.exceptions import ProjectNotFoundError
-from ananta.rlm.trace import StepType
+from ananta.rlm.trace import StepType, TokenUsage
 
 # Guard TUI import: textual is an optional dependency (ananta[tui]).
 try:
@@ -244,7 +244,7 @@ def main() -> None:
             spinner.start()
             query_start_time = time.time()
 
-            def on_progress(step_type: StepType, iteration: int, content: str) -> None:
+            def on_progress(step_type: StepType, iteration: int, content: str, _: TokenUsage) -> None:
                 spinner.stop()
                 elapsed = time.time() - query_start_time
                 print(format_progress(step_type, iteration, content, elapsed_seconds=elapsed))
