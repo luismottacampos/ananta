@@ -1,4 +1,4 @@
-.PHONY: install test test-frontend lint typecheck typecheck-frontend format all loc cover
+.PHONY: install test test-frontend lint typecheck typecheck-examples typecheck-frontend format all loc cover
 
 install:
 	pip install -e ".[dev]"
@@ -17,6 +17,11 @@ lint:
 typecheck:
 	mypy src/ananta
 
+# Run from examples/ with MYPYPATH=. so script_utils.py resolves as a top-level
+# module (matching how the example scripts actually import it at runtime).
+typecheck-examples:
+	cd examples && MYPYPATH=. mypy --explicit-package-bases .
+
 typecheck-frontend:
 	cd src/ananta/explorers/shared_ui/frontend && npx tsc --noEmit
 
@@ -24,7 +29,7 @@ format:
 	ruff format src tests
 	ruff check --fix src tests
 
-all: format lint typecheck typecheck-frontend test test-frontend
+all: format lint typecheck typecheck-examples typecheck-frontend test test-frontend
 
 cover:
 	pytest --cov=src/ananta --cov-report=term-missing --cov-report=html
