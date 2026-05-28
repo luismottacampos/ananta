@@ -7,17 +7,23 @@ Interactive CLI example that loads the 7 Edgar Rice Burroughs Barsoom novels and
 ## CLI Interface
 
 ```
-examples/barsoom.py [--setup] [--verbose]
+examples/barsoom.py [--setup] [--force] [--verbose]
 ```
 
 **Flags:**
-- `--setup` - Force re-upload of novels (even if project exists)
+- `--setup` - Re-upload novels. If the project already exists, prompts for
+  confirmation before deleting and re-uploading.
+- `--force` - Skip the `--setup` confirmation prompt. Required when combining
+  `--setup` with `--prompt` (or any non-interactive run) against an existing
+  project, since prompting would hang.
 - `--verbose` - Show execution stats after each answer
 
 **Startup behavior:**
 1. Check if "barsoom" project exists
-2. If missing OR `--setup` flag: upload novels with progress messages
-3. Enter interactive question loop
+2. If missing: upload novels with progress messages
+3. If `--setup` and project exists: prompt to confirm overwrite (or honor
+   `--force`); on confirmation, delete the project and re-upload
+4. Enter interactive question loop
 
 **Exit:** Type "quit" or "exit" (case-insensitive)
 
