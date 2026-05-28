@@ -27,10 +27,13 @@ Usage:
     # Interactive mode (sets up on first run)
     python examples/barsoom.py
 
-    # Force re-upload of novels
+    # Re-upload novels (prompts for confirmation if project already exists)
     python examples/barsoom.py --setup
 
-    # Single query (non-interactive)
+    # Re-upload non-interactively (e.g. scripted): --force skips the prompt
+    python examples/barsoom.py --setup --force
+
+    # Single query (non-interactive); requires --force with --setup on re-runs
     python examples/barsoom.py --prompt "Who is Dejah Thoris?"
 
     # Use a specific model
@@ -117,7 +120,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     Returns:
         Parsed arguments namespace with:
-            - setup: Force re-upload of novels even if project exists
+            - setup: Re-upload novels (prompts for confirmation if project exists)
+            - force: Skip the --setup confirmation prompt (for scripted runs)
             - prompt: Single query for non-interactive mode (optional)
             - verify: Enable semantic verification of results
     """
@@ -125,7 +129,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--setup",
         action="store_true",
-        help="Force re-upload of novels (even if project exists)",
+        help=(
+            "Re-upload the novels. Prompts for confirmation if the project "
+            "already exists; pass --force to skip the prompt (required for "
+            "scripted/--prompt runs)."
+        ),
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip the --setup confirmation prompt when overwriting an existing project.",
     )
     parser.add_argument(
         "--prompt",
@@ -165,6 +178,37 @@ def get_datasets_dir() -> Path:
     return Path(__file__).parent.parent / "test-datasets" / "barsoom"
 
 
+def confirm_overwrite(project_name: str, *, force: bool, interactive: bool) -> bool:
+    """Decide whether to delete and re-upload an existing project.
+
+    Args:
+        project_name: Project that already exists on disk.
+        force: True if the user passed --force; skips the prompt.
+        interactive: True if it is safe to call input() (TTY, no --prompt).
+
+    Returns:
+        True if the caller should delete and recreate the project.
+        False if the caller should keep the existing project.
+
+    Raises:
+        SystemExit: If --setup was requested on a non-interactive run without
+            --force. Refusing to prompt avoids hanging scripted invocations
+            (e.g. `--prompt`) on stdin.
+    """
+    if force:
+        return True
+    if not interactive:
+        print(
+            f"Error: Project '{project_name}' already exists. "
+            "Pass --force to overwrite it in non-interactive mode, "
+            "or omit --setup to use the existing project.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    response = input(f"Project '{project_name}' exists. Delete and re-upload? [y/N] ")
+    return response.strip().lower() in ("y", "yes")
+
+
 def setup_project(ananta: Ananta) -> None:
     """Set up the Barsoom project by uploading all 7 novels.
 
@@ -175,8 +219,10 @@ def setup_project(ananta: Ananta) -> None:
         ananta: Initialized Ananta instance to create the project in.
 
     Note:
-        This overwrites any existing "barsoom" project. The novels total
-        approximately 2.8 million characters across all 7 books.
+        Assumes the "barsoom" project does not already exist; the caller is
+        responsible for deleting any prior project first (see
+        `confirm_overwrite`). The novels total approximately 2.8 million
+        characters across all 7 books.
     """
     print("Setting up Barsoom project...")
     project = ananta.create_project(PROJECT_NAME)
@@ -196,7 +242,9 @@ def main() -> None:
     Orchestrates the complete workflow:
     1. Validates environment (ANANTA_API_KEY required)
     2. Initializes Ananta with local storage configuration
-    3. Sets up the project on first run or if --setup is passed
+    3. Sets up the project on first run; if --setup is passed against an
+       existing project, prompts before deleting and re-uploading (or skips
+       the prompt with --force)
     4. Handles single query (--prompt) or launches TUI for interactive mode
 
     Raises:
@@ -226,9 +274,18 @@ def main() -> None:
     # Check if project exists
     project_exists = PROJECT_NAME in ananta.list_projects()
 
-    # Setup if needed
-    if args.setup or not project_exists:
+    # Setup if needed. If --setup was passed against an existing project, gate
+    # the destructive overwrite behind a confirmation (or --force for scripts).
+    if not project_exists:
         setup_project(ananta)
+    elif args.setup:
+        interactive = args.prompt is None
+        if confirm_overwrite(PROJECT_NAME, force=args.force, interactive=interactive):
+            print(f"Removing existing '{PROJECT_NAME}' project...")
+            ananta.delete_project(PROJECT_NAME)
+            setup_project(ananta)
+        else:
+            print(f"Keeping existing '{PROJECT_NAME}' project.")
 
     # Get the project
     try:

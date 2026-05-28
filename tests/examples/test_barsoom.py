@@ -2,7 +2,9 @@
 
 import sys
 
-from examples.barsoom import BOOKS, parse_args
+import pytest
+
+from examples.barsoom import BOOKS, confirm_overwrite, parse_args
 
 
 class TestModuleImportSideEffects:
@@ -53,6 +55,60 @@ class TestArgumentParsing:
     def test_parse_args_no_verbose_flag(self) -> None:
         """--verbose flag has been removed (TUI info bar replaces it)."""
         assert not hasattr(parse_args([]), "verbose")
+
+    def test_parse_args_force_default(self) -> None:
+        """Default args have force=False."""
+        args = parse_args([])
+        assert args.force is False
+
+    def test_parse_args_force_flag(self) -> None:
+        """--force flag sets force=True."""
+        args = parse_args(["--force"])
+        assert args.force is True
+
+
+class TestConfirmOverwrite:
+    """Tests for the --setup overwrite confirmation gate."""
+
+    def test_force_returns_true_without_prompting(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """--force skips the prompt entirely and returns True."""
+
+        def fail_input(_prompt: str) -> str:
+            raise AssertionError("input() must not be called when force=True")
+
+        monkeypatch.setattr("builtins.input", fail_input)
+        assert confirm_overwrite("barsoom", force=True, interactive=True) is True
+
+    def test_non_interactive_without_force_exits(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Non-interactive run (e.g. --prompt) without --force must exit, not hang."""
+        with pytest.raises(SystemExit) as exc_info:
+            confirm_overwrite("barsoom", force=False, interactive=False)
+        assert exc_info.value.code != 0
+        # The message must name the project and point at --force as the escape hatch.
+        captured = capsys.readouterr()
+        all_output = captured.out + captured.err
+        assert "barsoom" in all_output
+        assert "--force" in all_output
+
+    def test_interactive_yes_returns_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Typing 'y' at the prompt returns True."""
+        monkeypatch.setattr("builtins.input", lambda _prompt: "y")
+        assert confirm_overwrite("barsoom", force=False, interactive=True) is True
+
+    def test_interactive_yes_uppercase_returns_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Typing 'Y' (uppercase) returns True."""
+        monkeypatch.setattr("builtins.input", lambda _prompt: "Y")
+        assert confirm_overwrite("barsoom", force=False, interactive=True) is True
+
+    def test_interactive_empty_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Empty response (bare Enter) defaults to No, matching the [y/N] hint."""
+        monkeypatch.setattr("builtins.input", lambda _prompt: "")
+        assert confirm_overwrite("barsoom", force=False, interactive=True) is False
+
+    def test_interactive_no_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Typing 'n' returns False."""
+        monkeypatch.setattr("builtins.input", lambda _prompt: "n")
+        assert confirm_overwrite("barsoom", force=False, interactive=True) is False
 
 
 class TestBooksMapping:

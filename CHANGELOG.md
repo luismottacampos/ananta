@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `examples/barsoom.py --force` flag to skip the `--setup` confirmation prompt when overwriting an existing project (required for scripted/`--prompt` re-runs)
+
+### Changed
+
+- `examples/barsoom.py --setup` now prompts for confirmation before overwriting an existing project instead of crashing with `ProjectExistsError`. The previous documented behavior (silent overwrite) was never implemented; the new behavior matches the documentation. Pass `--force` to skip the prompt for scripted runs.
+
 ### Fixed
 
 - `examples/barsoom.py --prompt` no longer crashes with a `TypeError` when the engine invokes the progress callback — the inline `on_progress` was missing the `TokenUsage` parameter the engine passes positionally
